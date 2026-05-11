@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comprobantes</title>
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      body {
+        background: #0d1b2a;
+        color: white;
+        font-family: Arial;
+      }
+
+      .container {
+        margin-top: 40px;
+      }
+
+      .card {
+        background: #10243d;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+      }
+
+      .table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="mb-4">Comprobantes Contables</h1>
+      <div class="mb-3">
+        <a href="/dashboard" class="btn btn-secondary"> ← Volver al Menú </a>
+      </div>
+
+      <div class="card">
+        <form action="/guardar_comprobante" method="POST">
+          <div class="row">
+            <div class="col-md-2">
+              <label>Fecha</label>
+
+              <input type="date" class="form-control" name="fecha" />
+            </div>
+
+            <div class="col-md-3">
+              <label>Cuenta</label>
+
+              <select class="form-control" name="cuenta">
+                {% for cuenta in cuentas %}
+
+                <option>{{ cuenta[1] }} - {{ cuenta[2] }}</option>
+
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label>Detalle</label>
+
+              <input type="text" class="form-control" name="detalle" />
+            </div>
+
+            <div class="col-md-2">
+              <label>Debe</label>
+
+              <input
+                type="number"
+                step="0.01"
+                class="form-control"
+                name="debe"
+              />
+            </div>
+
+            <div class="col-md-2">
+              <label>Haber</label>
+
+              <input
+                type="number"
+                step="0.01"
+                class="form-control"
+                name="haber"
+              />
+            </div>
+          </div>
+
+          <button class="btn btn-primary mt-4">Guardar Comprobante</button>
+        </form>
+      </div>
+
+      <table class="table table-striped">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Fecha</th>
+            <th>Cuenta</th>
+            <th>Detalle</th>
+            <th>Debe</th>
+            <th>Haber</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for comprobante in comprobantes %}
+
+          <tr>
+            <td>{{ comprobante[0] }}</td>
+            <td>{{ comprobante[1] }}</td>
+            <td>{{ comprobante[2] }}</td>
+            <td>{{ comprobante[3] }}</td>
+            <td>{{ comprobante[4] }}</td>
+            <td>{{ comprobante[5] }}</td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </body>
+</html>
