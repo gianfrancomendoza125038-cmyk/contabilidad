@@ -94,11 +94,11 @@
           {% for cuenta in cuentas %}
 
           <tr>
-            <td>{{ cuenta[0] }}</td>
-            <td>{{ cuenta[1] }}</td>
-            <td>{{ cuenta[2] }}</td>
-            <td>{{ cuenta[3] }}</td>
-            <td>{{ cuenta[4] }}</td>
+            <td>{{ cuenta._id }}</td>
+            <td>{{ cuenta.codigo }}</td>
+            <td>{{ cuenta.nombre }}</td>
+            <td>{{ cuenta.tipo }}</td>
+            <td>{{ cuenta.naturaleza }}</td>
           </tr>
 
           {% endfor %}
