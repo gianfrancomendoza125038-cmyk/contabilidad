@@ -34,14 +34,14 @@
       <div class="card">
         <h2 class="mb-4">Editar Usuario</h2>
 
-        <form action="/actualizar_usuario/{{ usuario[0] }}" method="POST">
+        <form action="/actualizar_usuario/{{ usuario._id }}" method="POST">
           <div class="mb-3">
             <label>Nombres</label>
             <input
               type="text"
               class="form-control"
               name="nombres"
-              value="{{ usuario[1] }}"
+              value="{{ usuario.nombres }}"
             />
           </div>
 
@@ -51,7 +51,7 @@
               type="text"
               class="form-control"
               name="apellidos"
-              value="{{ usuario[2] }}"
+              value="{{ usuario.apellidos }}"
             />
           </div>
 
@@ -61,7 +61,7 @@
               type="email"
               class="form-control"
               name="correo"
-              value="{{ usuario[3] }}"
+              value="{{ usuario.correo }}"
             />
           </div>
 
@@ -71,7 +71,7 @@
               type="text"
               class="form-control"
               name="usuario"
-              value="{{ usuario[5] }}"
+              value="{{ usuario.usuario }}"
             />
           </div>
 
@@ -79,7 +79,7 @@
             <label>Rol</label>
 
             <select class="form-control" name="rol">
-              <option>{{ usuario[6] }}</option>
+              <option>{{ usuario.rol }}</option>
               <option>Administrador</option>
               <option>Contador</option>
             </select>

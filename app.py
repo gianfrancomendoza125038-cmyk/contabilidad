@@ -1,25 +1,20 @@
 from flask import Flask, render_template, request, redirect, url_for, session
-from flask_mysqldb import MySQL
 from flask import make_response
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 from reportlab.pdfgen import canvas
 from io import BytesIO
-from flask import make_response
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
-from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = 'sistema_contable_secreto'
 
-# MYSQL
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'sistema_contable'
-
-mysql = MySQL(app)
+# MONGODB
+client = MongoClient("mongodb+srv://gianfrancomendoza125038_db_user:y3VFwnxubFRJq3YN@cluster0.bmxja09.mongodb.net/")
+db = client.mi_base_de_datos # Nombre de la base de datos
 
 # LOGIN
 @app.route('/')
@@ -43,17 +38,15 @@ def guardar_usuario():
     rol = request.form['rol']
     password = request.form['password']
 
-    cursor = mysql.connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO usuarios
-        (nombres, apellidos, correo, celular, usuario, rol, password)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (nombres, apellidos, correo, celular, usuario, rol, password))
-
-    mysql.connection.commit()
-
-    cursor.close()
+    db.usuarios.insert_one({
+        'nombres': nombres,
+        'apellidos': apellidos,
+        'correo': correo,
+        'celular': celular,
+        'usuario': usuario,
+        'rol': rol,
+        'password': password
+    })
 
     return "Usuario registrado correctamente"
 
@@ -64,21 +57,11 @@ def validar_login():
     usuario = request.form['usuario']
     password = request.form['password']
 
-    cursor = mysql.connection.cursor()
-
-    cursor.execute("""
-        SELECT * FROM usuarios
-        WHERE usuario=%s AND password=%s
-    """, (usuario, password))
-
-    cuenta = cursor.fetchone()
-
-    cursor.close()
+    cuenta = db.usuarios.find_one({'usuario': usuario, 'password': password})
 
     if cuenta:
-
         session['usuario'] = usuario
-        session['rol'] = cuenta[6]
+        session['rol'] = cuenta.get('rol', '')
      
         return render_template('dashboard.html')
     else:
@@ -110,38 +93,26 @@ def usuarios():
         if session['rol'] != 'Administrador':
           return "Acceso denegado"
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("SELECT * FROM usuarios")
-
-        usuarios = cursor.fetchall()
-
-        cursor.close()
+        usuarios = list(db.usuarios.find())
 
         return render_template('usuarios.html', usuarios=usuarios)
 
     return redirect(url_for('login'))
 
 # EDITAR USUARIO
-@app.route('/editar_usuario/<int:id>')
+@app.route('/editar_usuario/<id>')
 def editar_usuario(id):
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("SELECT * FROM usuarios WHERE id=%s", (id,))
-
-        usuario = cursor.fetchone()
-
-        cursor.close()
+        usuario = db.usuarios.find_one({'_id': ObjectId(id)})
 
         return render_template('editar_usuario.html', usuario=usuario)
 
     return redirect(url_for('login'))
 
 # ACTUALIZAR USUARIO
-@app.route('/actualizar_usuario/<int:id>', methods=['POST'])
+@app.route('/actualizar_usuario/<id>', methods=['POST'])
 def actualizar_usuario(id):
 
     nombres = request.form['nombres']
@@ -150,37 +121,23 @@ def actualizar_usuario(id):
     usuario = request.form['usuario']
     rol = request.form['rol']
 
-    cursor = mysql.connection.cursor()
-
-    cursor.execute("""
-        UPDATE usuarios
-        SET nombres=%s,
-            apellidos=%s,
-            correo=%s,
-            usuario=%s,
-            rol=%s
-        WHERE id=%s
-    """, (nombres, apellidos, correo, usuario, rol, id))
-
-    mysql.connection.commit()
-
-    cursor.close()
+    db.usuarios.update_one({'_id': ObjectId(id)}, {'$set': {
+        'nombres': nombres,
+        'apellidos': apellidos,
+        'correo': correo,
+        'usuario': usuario,
+        'rol': rol
+    }})
 
     return redirect(url_for('usuarios'))
 
 # ELIMINAR USUARIO
-@app.route('/eliminar_usuario/<int:id>')
+@app.route('/eliminar_usuario/<id>')
 def eliminar_usuario(id):
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("DELETE FROM usuarios WHERE id=%s", (id,))
-
-        mysql.connection.commit()
-
-        cursor.close()
+        db.usuarios.delete_one({'_id': ObjectId(id)})
 
         return redirect(url_for('usuarios'))
 
@@ -192,16 +149,7 @@ def plan_cuentas():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("""
-    SELECT * FROM plan_cuentas
-    ORDER BY codigo ASC
-""")
-
-        cuentas = cursor.fetchall()
-
-        cursor.close()
+        cuentas = list(db.plan_cuentas.find().sort('codigo', 1))
 
         return render_template('plan_cuentas.html', cuentas=cuentas)
 
@@ -216,17 +164,12 @@ def guardar_cuenta():
     tipo = request.form['tipo']
     naturaleza = request.form['naturaleza']
 
-    cursor = mysql.connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO plan_cuentas
-        (codigo, nombre, tipo, naturaleza)
-        VALUES (%s, %s, %s, %s)
-    """, (codigo, nombre, tipo, naturaleza))
-
-    mysql.connection.commit()
-
-    cursor.close()
+    db.plan_cuentas.insert_one({
+        'codigo': codigo,
+        'nombre': nombre,
+        'tipo': tipo,
+        'naturaleza': naturaleza
+    })
 
     return redirect(url_for('plan_cuentas'))
 
@@ -236,17 +179,8 @@ def comprobantes():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        # OBTENER COMPROBANTES
-        cursor.execute("SELECT * FROM comprobantes")
-        comprobantes = cursor.fetchall()
-
-        # OBTENER CUENTAS
-        cursor.execute("SELECT * FROM plan_cuentas")
-        cuentas = cursor.fetchall()
-
-        cursor.close()
+        comprobantes = list(db.comprobantes.find())
+        cuentas = list(db.plan_cuentas.find())
 
         return render_template(
             'comprobantes.html',
@@ -266,17 +200,13 @@ def guardar_comprobante():
     debe = request.form['debe']
     haber = request.form['haber']
 
-    cursor = mysql.connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO comprobantes
-        (fecha, cuenta, detalle, debe, haber)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (fecha, cuenta, detalle, debe, haber))
-
-    mysql.connection.commit()
-
-    cursor.close()
+    db.comprobantes.insert_one({
+        'fecha': fecha,
+        'cuenta': cuenta,
+        'detalle': detalle,
+        'debe': float(debe) if debe else 0.0,
+        'haber': float(haber) if haber else 0.0
+    })
 
     return redirect(url_for('comprobantes'))
 
@@ -286,29 +216,10 @@ def libro_diario():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
+        movimientos = list(db.comprobantes.find())
 
-        cursor.execute("SELECT * FROM comprobantes")
-
-        movimientos = cursor.fetchall()
-
-        # TOTAL DEBE
-        cursor.execute("""
-            SELECT SUM(debe)
-            FROM comprobantes
-        """)
-
-        total_debe = cursor.fetchone()[0]
-
-        # TOTAL HABER
-        cursor.execute("""
-            SELECT SUM(haber)
-            FROM comprobantes
-        """)
-
-        total_haber = cursor.fetchone()[0]
-
-        cursor.close()
+        total_debe = sum(mov.get('debe', 0) for mov in movimientos)
+        total_haber = sum(mov.get('haber', 0) for mov in movimientos)
 
         return render_template(
             'libro_diario.html',
@@ -325,36 +236,11 @@ def balance_general():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
+        comprobantes = list(db.comprobantes.find())
 
-        # ACTIVOS
-        cursor.execute("""
-            SELECT SUM(debe - haber)
-            FROM comprobantes
-            WHERE cuenta LIKE '1%'
-        """)
-
-        activos = cursor.fetchone()[0]
-
-        # PASIVOS
-        cursor.execute("""
-            SELECT SUM(haber - debe)
-            FROM comprobantes
-            WHERE cuenta LIKE '2%'
-        """)
-
-        pasivos = cursor.fetchone()[0]
-
-        # PATRIMONIO
-        cursor.execute("""
-            SELECT SUM(haber - debe)
-            FROM comprobantes
-            WHERE cuenta LIKE '3%'
-        """)
-
-        patrimonio = cursor.fetchone()[0]
-
-        cursor.close()
+        activos = sum((mov.get('debe', 0) - mov.get('haber', 0)) for mov in comprobantes if str(mov.get('cuenta', '')).startswith('1'))
+        pasivos = sum((mov.get('haber', 0) - mov.get('debe', 0)) for mov in comprobantes if str(mov.get('cuenta', '')).startswith('2'))
+        patrimonio = sum((mov.get('haber', 0) - mov.get('debe', 0)) for mov in comprobantes if str(mov.get('cuenta', '')).startswith('3'))
 
         return render_template(
             'balance_general.html',
@@ -371,13 +257,7 @@ def pdf_libro_diario():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("SELECT * FROM comprobantes")
-
-        movimientos = cursor.fetchall()
-
-        cursor.close()
+        movimientos = list(db.comprobantes.find())
 
         buffer = BytesIO()
 
@@ -394,10 +274,10 @@ def pdf_libro_diario():
         for movimiento in movimientos:
 
             texto = f"""
-Fecha: {movimiento[1]} |
-Cuenta: {movimiento[2]} |
-Debe: {movimiento[4]} |
-Haber: {movimiento[5]}
+Fecha: {movimiento.get('fecha', '')} |
+Cuenta: {movimiento.get('cuenta', '')} |
+Debe: {movimiento.get('debe', 0)} |
+Haber: {movimiento.get('haber', 0)}
 """
 
             pdf.drawString(50, y, texto)
@@ -425,29 +305,12 @@ def estado_resultados():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
+        comprobantes = list(db.comprobantes.find())
 
-        # INGRESOS
-        cursor.execute("""
-            SELECT SUM(haber - debe)
-            FROM comprobantes
-            WHERE cuenta LIKE '4%'
-        """)
-
-        ingresos = cursor.fetchone()[0] or 0
-
-        # GASTOS
-        cursor.execute("""
-            SELECT SUM(debe - haber)
-            FROM comprobantes
-            WHERE cuenta LIKE '5%'
-        """)
-
-        gastos = cursor.fetchone()[0] or 0
+        ingresos = sum((mov.get('haber', 0) - mov.get('debe', 0)) for mov in comprobantes if str(mov.get('cuenta', '')).startswith('4'))
+        gastos = sum((mov.get('debe', 0) - mov.get('haber', 0)) for mov in comprobantes if str(mov.get('cuenta', '')).startswith('5'))
 
         utilidad = ingresos - gastos
-
-        cursor.close()
 
         return render_template(
             'estado_resultados.html',
@@ -464,27 +327,10 @@ def graficos():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
+        comprobantes = list(db.comprobantes.find())
 
-        # INGRESOS
-        cursor.execute("""
-            SELECT SUM(haber - debe)
-            FROM comprobantes
-            WHERE cuenta LIKE '4%'
-        """)
-
-        ingresos = cursor.fetchone()[0] or 0
-
-        # GASTOS
-        cursor.execute("""
-            SELECT SUM(debe - haber)
-            FROM comprobantes
-            WHERE cuenta LIKE '5%'
-        """)
-
-        gastos = cursor.fetchone()[0] or 0
-
-        cursor.close()
+        ingresos = sum((mov.get('haber', 0) - mov.get('debe', 0)) for mov in comprobantes if str(mov.get('cuenta', '')).startswith('4'))
+        gastos = sum((mov.get('debe', 0) - mov.get('haber', 0)) for mov in comprobantes if str(mov.get('cuenta', '')).startswith('5'))
 
         return render_template(
             'graficos.html',
@@ -500,13 +346,7 @@ def inventario():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("SELECT * FROM inventario")
-
-        productos = cursor.fetchall()
-
-        cursor.close()
+        productos = list(db.inventario.find())
 
         return render_template(
             'inventario.html',
@@ -524,17 +364,12 @@ def guardar_producto():
     stock = request.form['stock']
     precio = request.form['precio']
 
-    cursor = mysql.connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO inventario
-        (codigo, producto, stock, precio)
-        VALUES (%s, %s, %s, %s)
-    """, (codigo, producto, stock, precio))
-
-    mysql.connection.commit()
-
-    cursor.close()
+    db.inventario.insert_one({
+        'codigo': codigo,
+        'producto': producto,
+        'stock': int(stock) if stock else 0,
+        'precio': float(precio) if precio else 0.0
+    })
 
     return redirect(url_for('inventario'))
 
@@ -544,17 +379,8 @@ def ventas():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        # OBTENER VENTAS
-        cursor.execute("SELECT * FROM ventas")
-        ventas = cursor.fetchall()
-
-        # OBTENER PRODUCTOS
-        cursor.execute("SELECT * FROM inventario")
-        productos = cursor.fetchall()
-
-        cursor.close()
+        ventas = list(db.ventas.find())
+        productos = list(db.inventario.find())
 
         return render_template(
             'ventas.html',
@@ -575,25 +401,18 @@ def guardar_venta():
 
     total = cantidad * precio
 
-    cursor = mysql.connection.cursor()
+    db.ventas.insert_one({
+        'producto': producto,
+        'cantidad': cantidad,
+        'precio': precio,
+        'total': total,
+        'fecha': fecha
+    })
 
-    # GUARDAR VENTA
-    cursor.execute("""
-        INSERT INTO ventas
-        (producto, cantidad, precio, total, fecha)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (producto, cantidad, precio, total, fecha))
-
-    # DESCONTAR STOCK
-    cursor.execute("""
-        UPDATE inventario
-        SET stock = stock - %s
-        WHERE producto = %s
-    """, (cantidad, producto))
-
-    mysql.connection.commit()
-
-    cursor.close()
+    db.inventario.update_one(
+        {'producto': producto},
+        {'$inc': {'stock': -cantidad}}
+    )
 
     return redirect(url_for('ventas'))
 # CLIENTES
@@ -602,13 +421,7 @@ def clientes():
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("SELECT * FROM clientes")
-
-        clientes = cursor.fetchall()
-
-        cursor.close()
+        clientes = list(db.clientes.find())
 
         return render_template(
             'clientes.html',
@@ -626,33 +439,22 @@ def guardar_cliente():
     telefono = request.form['telefono']
     direccion = request.form['direccion']
 
-    cursor = mysql.connection.cursor()
-
-    cursor.execute("""
-        INSERT INTO clientes
-        (nombre, ci_nit, telefono, direccion)
-        VALUES (%s, %s, %s, %s)
-    """, (nombre, ci_nit, telefono, direccion))
-
-    mysql.connection.commit()
-
-    cursor.close()
+    db.clientes.insert_one({
+        'nombre': nombre,
+        'ci_nit': ci_nit,
+        'telefono': telefono,
+        'direccion': direccion
+    })
 
     return redirect(url_for('clientes'))
 
 # FACTURA PDF
-@app.route('/factura_pdf/<int:id_venta>')
+@app.route('/factura_pdf/<id_venta>')
 def factura_pdf(id_venta):
 
     if 'usuario' in session:
 
-        cursor = mysql.connection.cursor()
-
-        cursor.execute("SELECT * FROM ventas WHERE id = %s", (id_venta,))
-
-        venta = cursor.fetchone()
-
-        cursor.close()
+        venta = db.ventas.find_one({'_id': ObjectId(id_venta)})
 
         buffer = BytesIO()
 
@@ -698,11 +500,11 @@ def factura_pdf(id_venta):
         datos = [
             ['ID', 'Producto', 'Cantidad', 'Precio', 'Total'],
             [
-                venta[0],
-                venta[1],
-                venta[2],
-                f"Bs. {venta[3]}",
-                f"Bs. {venta[4]}"
+                str(venta.get('_id', '')),
+                venta.get('producto', ''),
+                venta.get('cantidad', 0),
+                f"Bs. {venta.get('precio', 0)}",
+                f"Bs. {venta.get('total', 0)}"
             ]
         ]
 
@@ -721,6 +523,12 @@ def factura_pdf(id_venta):
         elementos.append(tabla)
 
         elementos.append(Spacer(1, 30))
+        doc.build(elementos)
+        buffer.seek(0)
+        response = make_response(buffer.getvalue())
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'inline; filename=factura_{id_venta}.pdf'
+        return response
     return redirect(url_for('login'))
 
 if __name__ == '__main__':

@@ -90,11 +90,11 @@
           {% for cliente in clientes %}
 
           <tr>
-            <td>{{ cliente[0] }}</td>
-            <td>{{ cliente[1] }}</td>
-            <td>{{ cliente[2] }}</td>
-            <td>{{ cliente[3] }}</td>
-            <td>{{ cliente[4] }}</td>
+            <td>{{ cliente._id }}</td>
+            <td>{{ cliente.nombre }}</td>
+            <td>{{ cliente.ci_nit }}</td>
+            <td>{{ cliente.telefono }}</td>
+            <td>{{ cliente.direccion }}</td>
           </tr>
 
           {% endfor %}

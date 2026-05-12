@@ -51,7 +51,7 @@
               <select class="form-control" name="producto">
                 {% for producto in productos %}
 
-                <option>{{ producto[2] }}</option>
+                <option>{{ producto.producto }}</option>
 
                 {% endfor %}
               </select>
@@ -102,15 +102,15 @@
           {% for venta in ventas %}
 
           <tr>
-            <td>{{ venta[0] }}</td>
-            <td>{{ venta[1] }}</td>
-            <td>{{ venta[2] }}</td>
-            <td>{{ venta[3] }}</td>
-            <td>{{ venta[4] }}</td>
-            <td>{{ venta[5] }}</td>
+            <td>{{ venta._id }}</td>
+            <td>{{ venta.producto }}</td>
+            <td>{{ venta.cantidad }}</td>
+            <td>{{ venta.precio }}</td>
+            <td>{{ venta.total }}</td>
+            <td>{{ venta.fecha }}</td>
             <td>
               <a
-                href="/factura_pdf/{{ venta[0] }}"
+                href="/factura_pdf/{{ venta._id }}"
                 class="btn btn-danger btn-sm"
               >
                 PDF

@@ -57,7 +57,7 @@
               <select class="form-control" name="cuenta">
                 {% for cuenta in cuentas %}
 
-                <option>{{ cuenta[1] }} - {{ cuenta[2] }}</option>
+                <option>{{ cuenta.codigo }} - {{ cuenta.nombre }}</option>
 
                 {% endfor %}
               </select>
@@ -112,12 +112,12 @@
           {% for comprobante in comprobantes %}
 
           <tr>
-            <td>{{ comprobante[0] }}</td>
-            <td>{{ comprobante[1] }}</td>
-            <td>{{ comprobante[2] }}</td>
-            <td>{{ comprobante[3] }}</td>
-            <td>{{ comprobante[4] }}</td>
-            <td>{{ comprobante[5] }}</td>
+            <td>{{ comprobante._id }}</td>
+            <td>{{ comprobante.fecha }}</td>
+            <td>{{ comprobante.cuenta }}</td>
+            <td>{{ comprobante.detalle }}</td>
+            <td>{{ comprobante.debe }}</td>
+            <td>{{ comprobante.haber }}</td>
           </tr>
 
           {% endfor %}

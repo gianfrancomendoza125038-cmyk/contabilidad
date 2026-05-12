@@ -61,23 +61,23 @@
           {% for usuario in usuarios %}
 
           <tr>
-            <td>{{ usuario[0] }}</td>
-            <td>{{ usuario[1] }}</td>
-            <td>{{ usuario[2] }}</td>
-            <td>{{ usuario[3] }}</td>
-            <td>{{ usuario[5] }}</td>
-            <td>{{ usuario[6] }}</td>
+            <td>{{ usuario._id }}</td>
+            <td>{{ usuario.nombres }}</td>
+            <td>{{ usuario.apellidos }}</td>
+            <td>{{ usuario.correo }}</td>
+            <td>{{ usuario.usuario }}</td>
+            <td>{{ usuario.rol }}</td>
 
             <td>
               <a
-                href="/editar_usuario/{{ usuario[0] }}"
+                href="/editar_usuario/{{ usuario._id }}"
                 class="btn btn-warning btn-sm"
               >
                 Editar
               </a>
 
               <a
-                href="/eliminar_usuario/{{ usuario[0] }}"
+                href="/eliminar_usuario/{{ usuario._id }}"
                 class="btn btn-danger btn-sm"
               >
                 Eliminar

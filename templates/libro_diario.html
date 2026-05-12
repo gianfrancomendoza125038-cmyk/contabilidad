@@ -60,11 +60,11 @@
           {% for movimiento in movimientos %}
 
           <tr>
-            <td>{{ movimiento[1] }}</td>
-            <td>{{ movimiento[2] }}</td>
-            <td>{{ movimiento[3] }}</td>
-            <td>{{ movimiento[4] }}</td>
-            <td>{{ movimiento[5] }}</td>
+            <td>{{ movimiento.fecha }}</td>
+            <td>{{ movimiento.cuenta }}</td>
+            <td>{{ movimiento.detalle }}</td>
+            <td>{{ movimiento.debe }}</td>
+            <td>{{ movimiento.haber }}</td>
           </tr>
 
           {% endfor %}
